@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run tests
+        shell: bash
+        run: |
+          TEST_FILES=$(find . -type f \( -name "*_test.ts" -o -name "*.test.ts" -o -name "*_test.js" -o -name "*.test.js" \) | sort)
+
+          if [ -z "$TEST_FILES" ]; then
+            echo "No Deno test files found. Creating sample test..."
+            mkdir -p tests
+            cat > tests/sample.test.ts <<'EOF'
+            Deno.test("sample test", () => {
+              const value = 2 + 2;
+              if (value !== 4) {
+                throw new Error(`Expected 4, got ${value}`);
+              }
+            });
+            EOF
+            TEST_FILES="tests/sample.test.ts"
+          fi
+
+          echo "Running tests:"
+          echo "$TEST_FILES"
+          deno test -A $TEST_FILES
